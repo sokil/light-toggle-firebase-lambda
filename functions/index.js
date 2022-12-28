@@ -1,5 +1,5 @@
 const functions = require("firebase-functions");
-var net = require('net');
+const net = require('net');
 const https = require('https');
 const {Firestore} = require('@google-cloud/firestore');
 const EventEmitter = require('events');
@@ -93,7 +93,7 @@ function ping()
 }
 
 exports.sendToggleLightNotification = functions.pubsub
-    .schedule('every 2 minutes')
+    .schedule(settings.cron)
     .onRun(
         (context) => {
             ping();
