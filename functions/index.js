@@ -54,18 +54,39 @@ function sendMessage(message) {
     });
 }
 
+function plural(number, form1, form2, form3)
+{
+    const reminder10 = number % 10;
+    const reminder100 = number % 100;
+    let pluralForm;
+    if ((reminder100 > 4 && reminder100 < 20) || reminder10 === 0) {
+        // 5 ... 19
+        pluralForm = form3;
+    } else if (reminder10 === 1) {
+        // 1
+        pluralForm = form1;
+    } else if (reminder10 >= 2 && reminder10 < 5) {
+        // 2..4
+        pluralForm = form2;
+    } else {
+        pluralForm = form3;
+    }
+
+    return number + " " + pluralForm;
+}
+
 function secondsToString(seconds) {
     if (seconds < 60) {
-        return seconds + " секунд";
+        return plural(seconds, "секунду", "секунди", "секунд");
     }
 
     if (seconds < 3600) {
-        return Math.floor(seconds / 60) + " хвилин";
+        return plural(Math.floor(seconds / 60), "хвилину", "хвилини", "хвилин");
     }
 
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds - (hours * 3600)) / 60);
-    return hours + " годин " + minutes + " хвилин";
+    return plural(hours, "годину", "години", "годин") + " " + plural(minutes, "хвилину", "хвилини", "хвилин");
 }
 
 function ping()
