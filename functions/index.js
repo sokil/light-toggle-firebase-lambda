@@ -26,13 +26,15 @@ lightStateEventEmitter.on('lightState', async function (newState) {
         enabled: newState
     });
 
-    if (newState === true) {
-        const timeDiff = now - currentState.data().date;
-        const timeDiffStr = secondsToString(timeDiff);
+    if (currentState.data().mute === false) {
+        if (newState === true) {
+            const timeDiff = now - currentState.data().date;
+            const timeDiffStr = secondsToString(timeDiff);
 
-        sendMessage("💡💡💡 Світло є. Світла не було " + timeDiffStr);
-    } else {
-        sendMessage("🕯️🕯️🕯️ Світла немає");
+            sendMessage("💡💡💡 Світло є. Світла не було " + timeDiffStr);
+        } else {
+            sendMessage("🕯️🕯️🕯️ Світла немає");
+        }
     }
 });
 
