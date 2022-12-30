@@ -104,7 +104,7 @@ function ping()
     });
 
     client.on('error', function(e) {
-        functions.logger.log("Ping error");
+        functions.logger.log("Ping error", e);
         lightStateEventEmitter.emit('lightState', false);
         client.destroy();
     });
