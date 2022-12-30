@@ -3,5 +3,6 @@ module.exports = {
     telegramChatId: "-1001111111111",
     pingHost: "127.0.0.1",
     pingPort: 80,
-    cron: 'every 2 minutes'
+    cron: 'every 2 minutes',
+    region: 'europe-central2'
 }

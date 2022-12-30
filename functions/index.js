@@ -10,12 +10,12 @@ const stateDocument = firestore.doc('status/status');
 
 const lightStateEventEmitter = new EventEmitter();
 
-lightStateEventEmitter.on('lightState', async function (newState) {
-    functions.logger.log("New light status", newState);
+lightStateEventEmitter.on('lightState', async function (newLightState) {
+    functions.logger.log("New light status", newLightState);
 
     const currentState = await stateDocument.get();
 
-    if (currentState.data().enabled === newState) {
+    if (currentState.data().light === newLightState) {
         return;
     }
 
@@ -23,17 +23,18 @@ lightStateEventEmitter.on('lightState', async function (newState) {
 
     await stateDocument.update({
         date: now,
-        enabled: newState
+        light: newLightState,
+        mute: currentState.data().mute
     });
 
     if (currentState.data().mute === false) {
-        if (newState === true) {
+        if (newLightState === true) {
             const timeDiff = now - currentState.data().date;
             const timeDiffStr = secondsToString(timeDiff);
 
-            sendMessage("💡💡💡 Світло є. Світла не було " + timeDiffStr);
+            sendMessage("💡💡💡 Світло є. Відключення тривало " + timeDiffStr);
         } else {
-            sendMessage("🕯️🕯️🕯️ Світла немає");
+            sendMessage("🕯🕯🕯 Світла немає.");
         }
     }
 });
@@ -107,15 +108,11 @@ function ping()
         lightStateEventEmitter.emit('lightState', false);
         client.destroy();
     });
-
-    client.on('timeout', function(e) {
-        functions.logger.log("Ping timeout");
-        lightStateEventEmitter.emit('lightState', false);
-        client.destroy();
-    });
 }
 
-exports.sendToggleLightNotification = functions.pubsub
+exports.sendToggleLightNotification = functions
+    .region(settings.region)
+    .pubsub
     .schedule(settings.cron)
     .onRun(
         (context) => {
