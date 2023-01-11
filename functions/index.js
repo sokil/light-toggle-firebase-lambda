@@ -46,7 +46,7 @@ function sendMessage(message) {
         'https://api.telegram.org/bot' + settings.telegramBotToken + '/sendMessage?chat_id=' + settings.telegramChatId + '&text=' + message,
         (resp) => {
             resp.on('data', function (chunk) {
-                functions.logger.log("Telegram response", chunk);
+                functions.logger.log("Telegram response", chunk.toString());
             });
         }
     )
@@ -90,23 +90,22 @@ function secondsToString(seconds) {
     return plural(hours, "годину", "години", "годин") + " " + plural(minutes, "хвилину", "хвилини", "хвилин");
 }
 
-function ping()
+async function ping()
 {
-    const client = new net.Socket();
+    return new Promise((resolve, reject) => {
+        const client = new net.Socket();
 
-    client.setTimeout(20000);
-    client.connect(settings.pingPort, settings.pingHost);
+        client.connect(settings.pingPort, settings.pingHost);
 
-    client.on('connect', function(e) {
-        functions.logger.log("Ping successful");
-        lightStateEventEmitter.emit('lightState', true);
-        client.destroy();
-    });
+        client.on('connect', function(e) {
+            functions.logger.log("Ping successful");
+            resolve(true);
+        });
 
-    client.on('error', function(e) {
-        functions.logger.log("Ping error", e);
-        lightStateEventEmitter.emit('lightState', false);
-        client.destroy();
+        client.on('error', function(e) {
+            functions.logger.log("Ping error", e);
+            resolve(false);
+        });
     });
 }
 
@@ -115,8 +114,15 @@ exports.sendToggleLightNotification = functions
     .pubsub
     .schedule(settings.cron)
     .onRun(
-        (context) => {
-            ping();
+        async (context) => {
+            let lightState = await ping();
+
+            // if ping error - try to check again
+            if (!lightState) {
+                lightState = await ping();
+            }
+
+            lightStateEventEmitter.emit('lightState', lightState);
 
             return null;
         }
