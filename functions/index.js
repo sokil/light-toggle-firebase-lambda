@@ -11,13 +11,14 @@ const stateDocument = firestore.doc('status/status');
 const lightStateEventEmitter = new EventEmitter();
 
 lightStateEventEmitter.on('lightState', async function (newLightState) {
-    functions.logger.log("New light status", newLightState);
-
     const currentState = await stateDocument.get();
 
     if (currentState.data().light === newLightState) {
+        functions.logger.log("Light status not changed");
         return;
     }
+
+    functions.logger.log("Light status changed to: " + (newLightState ? 'ON' : 'OFF'));
 
     const now = Math.floor(Date.now() / 1000);
 
@@ -36,6 +37,8 @@ lightStateEventEmitter.on('lightState', async function (newLightState) {
         } else {
             sendMessage("🕯🕯🕯 Світла немає.");
         }
+    } else {
+        functions.logger.log("Notification muted");
     }
 });
 
@@ -93,17 +96,29 @@ function secondsToString(seconds) {
 async function ping()
 {
     return new Promise((resolve, reject) => {
-        const client = new net.Socket();
+        const socket = new net.Socket();
 
-        client.connect(settings.pingPort, settings.pingHost);
+        socket.setTimeout(10000);
 
-        client.on('connect', function(e) {
-            functions.logger.log("Ping successful");
-            resolve(true);
+        socket.connect(
+            settings.pingPort,
+            settings.pingHost,
+            () => {
+                functions.logger.log("Ping successful");
+                resolve(true);
+                socket.destroy();
+            }
+        );
+
+        socket.once('error', function(e) {
+            functions.logger.log("Ping error", e);
+            socket.destroy();
+            resolve(false);
         });
 
-        client.on('error', function(e) {
-            functions.logger.log("Ping error", e);
+        socket.once('timeout', function(e) {
+            functions.logger.log("Ping idle timeout", e);
+            socket.destroy();
             resolve(false);
         });
     });
@@ -115,14 +130,22 @@ exports.sendToggleLightNotification = functions
     .schedule(settings.cron)
     .onRun(
         async (context) => {
-            let lightState = await ping();
+            functions.logger.log("Check started");
 
-            // if ping error - try to check again
-            if (!lightState) {
-                lightState = await ping();
+            try {
+                let lightState = await ping();
+
+                // if ping error - try to check again
+                if (!lightState) {
+                    functions.logger.log("Ping failed, retry...");
+                    lightState = await ping();
+                }
+
+                functions.logger.log("Emitting actual light status: ", lightState ? 'ON' : 'OFF');
+                lightStateEventEmitter.emit('lightState', lightState);
+            } catch (e) {
+                functions.logger.log("Ping exception ", e);
             }
-
-            lightStateEventEmitter.emit('lightState', lightState);
 
             return null;
         }
