@@ -1,5 +1,5 @@
 {
   "projects": {
-    "default": "[DEFINE YOUR FIREBASE PROJECT HERE]"
+    "default": "[DEFINE YOUR FIREBASE PROJECT ID HERE]"
   }
 }
