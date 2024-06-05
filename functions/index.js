@@ -11,6 +11,8 @@ const stateDocument = firestore.doc('status/status');
 const lightStateEventEmitter = new EventEmitter();
 
 lightStateEventEmitter.on('lightState', async function (newLightState) {
+    const now = Math.floor(Date.now() / 1000);
+
     let currentState;
     try {
         currentState = await stateDocument.get();
@@ -19,28 +21,45 @@ lightStateEventEmitter.on('lightState', async function (newLightState) {
         return;
     }
 
-    if (currentState.data().light === newLightState) {
+    if (!currentState || !currentState.data()) {
+        try {
+            await stateDocument.create({
+                date: now,
+                light: true,
+                mute: false
+            });
+        } catch (e) {
+            functions.logger.log("Can not init state in database", e);
+        }
+
+        return;
+    }
+
+
+    const mute = currentState.data().mute;
+    const lastStateDate = currentState.data().date;
+    const lastLightStatus = currentState.data().light;
+
+    if (lastLightStatus  === newLightState) {
         functions.logger.log("Light status not changed");
         return;
     }
 
     functions.logger.log("Light status changed to: " + (newLightState ? 'ON' : 'OFF'));
 
-    const now = Math.floor(Date.now() / 1000);
-
     try {
         await stateDocument.update({
             date: now,
             light: newLightState,
-            mute: currentState.data().mute
+            mute: mute
         });
     } catch (e) {
         functions.logger.log("Can not update state in database", e);
     }
 
-    if (currentState.data().mute === false) {
+    if (mute === false) {
         if (newLightState === true) {
-            const timeDiff = now - currentState.data().date;
+            const timeDiff = now - lastStateDate;
             const timeDiffStr = secondsToString(timeDiff);
 
             sendMessage("💡💡💡 Світло є. Відключення тривало " + timeDiffStr);
