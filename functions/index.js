@@ -11,8 +11,9 @@ const stateDocument = firestore.doc('status/status');
 const lightStateEventEmitter = new EventEmitter();
 
 lightStateEventEmitter.on('lightState', async function (newLightState) {
+    let currentState;
     try {
-        const currentState = await stateDocument.get();
+        currentState = await stateDocument.get();
     } catch (e) {
         functions.logger.log("Can not read current state from database", e);
         return;
