@@ -11,7 +11,12 @@ const stateDocument = firestore.doc('status/status');
 const lightStateEventEmitter = new EventEmitter();
 
 lightStateEventEmitter.on('lightState', async function (newLightState) {
-    const currentState = await stateDocument.get();
+    try {
+        const currentState = await stateDocument.get();
+    } catch (e) {
+        functions.logger.log("Can not read current state from database", e);
+        return;
+    }
 
     if (currentState.data().light === newLightState) {
         functions.logger.log("Light status not changed");
@@ -22,11 +27,15 @@ lightStateEventEmitter.on('lightState', async function (newLightState) {
 
     const now = Math.floor(Date.now() / 1000);
 
-    await stateDocument.update({
-        date: now,
-        light: newLightState,
-        mute: currentState.data().mute
-    });
+    try {
+        await stateDocument.update({
+            date: now,
+            light: newLightState,
+            mute: currentState.data().mute
+        });
+    } catch (e) {
+        functions.logger.log("Can not update state in database", e);
+    }
 
     if (currentState.data().mute === false) {
         if (newLightState === true) {
@@ -98,7 +107,7 @@ async function ping()
     return new Promise((resolve, reject) => {
         const socket = new net.Socket();
 
-        socket.setTimeout(10000);
+        socket.setTimeout(5000);
 
         socket.connect(
             settings.pingPort,
