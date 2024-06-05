@@ -4,7 +4,7 @@ Notifies to Telegram on toggle electricity by pinging some device
 
 ## Configuration
 
-Create Firebase project at https://firebase.google.com/
+Create Firebase project at https://firebase.google.com/. Also enable "functions" and "firestore".
 
 Install Firebase tools
 
