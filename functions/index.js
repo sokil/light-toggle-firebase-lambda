@@ -145,8 +145,8 @@ async function ping()
             resolve(false);
         });
 
-        socket.once('timeout', function(e) {
-            functions.logger.log("Ping idle timeout", e);
+        socket.once('timeout', function() {
+            functions.logger.log("Ping idle timeout");
             socket.destroy();
             resolve(false);
         });
@@ -166,6 +166,9 @@ exports.sendToggleLightNotification = functions
 
                 // if ping error - try to check again
                 if (!lightState) {
+                    functions.logger.log("Ping failed, sleep...");
+                    await new Promise(resolve => setTimeout(resolve, 10000));
+
                     functions.logger.log("Ping failed, retry...");
                     lightState = await ping();
                 }
